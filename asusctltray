@@ -472,8 +472,8 @@ class CPUProfileController(Controller):
     @property
     def proxy(self):
         return dbus.Interface(
-            dbus.SystemBus().get_object("org.asuslinux.Daemon", "/org/asuslinux"),
-            dbus_interface="org.asuslinux.FanCurves",
+            dbus.SystemBus().get_object("xyz.ljones.Asusd", "/xyz/ljones"),
+            dbus_interface="xyz.ljones.FanCurves",
         )
 
     @property
@@ -505,8 +505,8 @@ class GPUProfileController(Controller):
     @property
     def proxy(self):
         return dbus.Interface(
-            dbus.SystemBus().get_object("org.asuslinux.Daemon", "/org/asuslinux"),
-            dbus_interface="org.asuslinux.FanCurves",
+            dbus.SystemBus().get_object("xyz.ljones.Asusd", "/xyz/ljones"),
+            dbus_interface="xyz.ljones.FanCurves",
         )
 
     @property

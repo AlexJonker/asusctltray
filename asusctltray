@@ -570,7 +570,7 @@ class GfxController(Controller):
             dialog.add_buttons("Open Github issues page", Gtk.ResponseType.OK)
             resp = dialog.run()
             if resp == Gtk.ResponseType.OK:
-                webbrowser.open_new_tab("https://github.com/Baldomo/asusctltray/issues")
+                webbrowser.open_new_tab("https://github.com/alexjonker/asusctltray/issues")
             dialog.destroy()
             return GFX_MODES["hybrid"]
         return GFX_MODES[mode]

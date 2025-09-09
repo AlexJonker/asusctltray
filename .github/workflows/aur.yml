@@ -1,0 +1,69 @@
+name: Auto-update AUR package
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install dependencies
+        run: pacman -Sy --noconfirm base-devel git sudo openssh
+
+      - name: Create non-root user and setup
+        run: |
+          useradd -m auruser
+          echo 'auruser ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/auruser
+          sudo -u auruser mkdir -p /home/auruser/.ssh
+          sudo -u auruser mkdir -p /home/auruser/aur-repo
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions@asusctltray"
+
+      - name: Update permissions for auruser
+        run: |
+          sudo chown -R auruser:auruser aur
+          sudo chmod -R u+rw aur
+          
+      - name: Update PKGBUILD and regenerate .SRCINFO
+        run: |
+          git config --global --add safe.directory /__w/asusctltray/asusctltray
+          version=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)")
+          sudo -u auruser bash -c "
+            git config --global user.name 'GitHub Actions'
+            git config --global user.email 'github-actions@asusctltray'
+            cd aur
+            sed -i \"s/^pkgver=.*/pkgver=$version/\" PKGBUILD
+            makepkg --printsrcinfo > .SRCINFO
+          "
+          echo $version
+          git rev-list --count HEAD
+
+      - name: Push to AUR
+        run: |
+          sudo -u auruser mkdir -p /home/auruser/.ssh
+          echo "${{ secrets.AUR_SSH_KEY }}" | sudo -u auruser tee /home/auruser/.ssh/id_ed25519 > /dev/null
+          sudo -u auruser chmod 600 /home/auruser/.ssh/id_ed25519
+          sudo -u auruser ssh-keyscan aur.archlinux.org >> /home/auruser/.ssh/known_hosts
+
+          sudo -u auruser git clone ssh://aur@aur.archlinux.org/asusctltray-upgraded-git.git /home/auruser/aur-repo
+          sudo -u auruser cp -r aur/. /home/auruser/aur-repo/
+          cd /home/auruser/aur-repo
+
+          sudo -u auruser git add -A
+          git config --global --add safe.directory /home/auruser/aur-repo
+          commit_hash=$(git rev-parse --short "${{ github.sha }}")
+          sudo -u auruser git commit -m "Update to commit $commit_hash"
+          sudo -u auruser git push
